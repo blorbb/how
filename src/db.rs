@@ -5,7 +5,6 @@ use std::{
 };
 
 use color_eyre::eyre::{Context, Result};
-use nucleo::Utf32String;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,15 +31,14 @@ impl Entry {
 
     /// Converts the entry into one string that should be searched
     /// for fuzzy finding.
-    pub fn to_haystack(&self) -> Utf32String {
-        let s = self.title
+    pub fn to_haystack(&self) -> String {
+        self.title
             .chars()
             .chain(iter::once('\n'))
             .chain(self.description.chars())
             .chain(iter::once('\n'))
             .chain(self.answer.chars())
-            .collect();
-        Utf32String::Unicode(s)
+            .collect()
     }
 }
 

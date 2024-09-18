@@ -55,7 +55,7 @@ pub fn run(mut terminal: DefaultTerminal, mut data: Data) -> Result<()> {
     Ok(())
 }
 
-fn draw(frame: &mut Frame, query: &TextArea, matches: &[(&Entry, u16)]) {
+fn draw(frame: &mut Frame, query: &TextArea, matches: &[(&Entry, f32)]) {
     let hor = horizontal![==1/2; 2].split(frame.area());
     let vert = vertical![==3, *=1].split(hor[0]);
     let p = Paragraph::new(format!("{matches:#?}"));

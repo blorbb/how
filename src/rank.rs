@@ -1,31 +1,13 @@
-use std::cmp::Reverse;
-
 use itertools::Itertools as _;
-use nucleo::{Config, Matcher, Utf32Str};
+use rust_fuzzy_search::fuzzy_compare;
 
 use crate::db::Entry;
 
-pub fn rank<'a>(query: &str, entries: &'a [Entry]) -> Vec<(&'a Entry, u16)> {
-    let mut query_buf = Vec::new();
-    let query_chars = Utf32Str::new(&query, &mut query_buf);
-
-    let mut config = Config::DEFAULT;
-    config.ignore_case = true;
-    config.normalize = true;
-    config.prefer_prefix = true;
-    let mut matcher = Matcher::new(config);
-
+pub fn rank<'a>(query: &str, entries: &'a [Entry]) -> Vec<(&'a Entry, f32)> {
     let mut matches = entries
         .iter()
-        .map(|entry| {
-            (
-                entry,
-                matcher
-                    .fuzzy_match(entry.to_haystack().slice(..), query_chars)
-                    .unwrap_or(0),
-            )
-        })
+        .map(|entry| (entry, fuzzy_compare(query, &entry.to_haystack())))
         .collect_vec();
-    matches.sort_by_key(|x| Reverse(x.1));
+    matches.sort_by(|a, b| b.1.total_cmp(&a.1));
     matches
 }
