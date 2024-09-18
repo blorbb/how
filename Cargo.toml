@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 color-eyre = "0.6.3"
 dirs = "5.0.1"
+itertools = "0.13.0"
 nucleo = "0.5.0"
 serde = { version = "1.0.210", features = ["derive"] }
 toml_edit = { version = "0.22.21", features = ["serde", "parse", "display"] }

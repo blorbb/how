@@ -1,9 +1,11 @@
 use std::{
     fs::File,
     io::{Read, Seek, Write},
+    iter,
 };
 
 use color_eyre::eyre::{Context, Result};
+use nucleo::Utf32String;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,6 +28,19 @@ impl Entry {
             answer: answer.into(),
             used: 0,
         }
+    }
+
+    /// Converts the entry into one string that should be searched
+    /// for fuzzy finding.
+    pub fn to_haystack(&self) -> Utf32String {
+        let s = self.title
+            .chars()
+            .chain(iter::once('\n'))
+            .chain(self.description.chars())
+            .chain(iter::once('\n'))
+            .chain(self.answer.chars())
+            .collect();
+        Utf32String::Unicode(s)
     }
 }
 
@@ -75,5 +90,9 @@ impl Data {
         self.file.rewind()?;
         self.file.write_all(doc.as_bytes())?;
         Ok(())
+    }
+
+    pub fn entries(&self) -> &[Entry] {
+        &self.entries.entries
     }
 }
