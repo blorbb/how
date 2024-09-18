@@ -9,6 +9,7 @@ use color_eyre::{
     Result,
 };
 use db::Data;
+use ui::App;
 fn main() -> Result<()> {
     let dir = dirs::data_dir().context("unable to find data directory")?;
 
@@ -24,7 +25,7 @@ fn main() -> Result<()> {
     terminal.clear()?;
 
     let data = Data::load_from(file)?;
-    ui::run(terminal, data)?;
+    App::new(data).run(&mut terminal)?;
 
     ratatui::restore();
     Ok(())
