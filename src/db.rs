@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{Read, Seek, Write},
-    iter,
+    iter, rc::Rc,
 };
 
 use color_eyre::eyre::{Context, Result};
@@ -40,12 +40,24 @@ impl Entry {
             .chain(self.answer.chars())
             .collect()
     }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    pub fn answer(&self) -> &str {
+        &self.answer
+    }
 }
 
 // needed for derive to get the correct key
 #[derive(Debug, Serialize, Deserialize)]
 struct Entries {
-    entries: Vec<Entry>,
+    entries: Vec<Rc<Entry>>,
 }
 
 impl Entries {
@@ -82,7 +94,7 @@ impl Data {
     }
 
     pub fn add(&mut self, entry: Entry) -> Result<()> {
-        self.entries.entries.push(entry);
+        self.entries.entries.push(Rc::new(entry));
         let doc = toml_edit::ser::to_string_pretty(&self.entries)?;
         self.file.set_len(0)?;
         self.file.rewind()?;
@@ -90,7 +102,7 @@ impl Data {
         Ok(())
     }
 
-    pub fn entries(&self) -> &[Entry] {
+    pub fn entries(&self) -> &[Rc<Entry>] {
         &self.entries.entries
     }
 }
