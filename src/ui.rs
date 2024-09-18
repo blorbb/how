@@ -1,19 +1,18 @@
 use std::{cell::RefCell, num::Saturating, rc::Rc};
 
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
-use itertools::Itertools;
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{
-    widgets::{Block, Borders, Paragraph, Widget},
+    style::Stylize,
+    text::Line,
+    widgets::{Block, Borders, StatefulWidget, Widget},
     DefaultTerminal,
 };
 use ratatui_macros::{horizontal, vertical};
 use tui_textarea::TextArea;
+use tui_widget_list::{ListBuilder, ListState, ListView};
 
-use crate::{
-    db::{Data, Entry},
-    rank,
-};
+use crate::{db::Data, rank};
 
 pub struct App {
     data: Rc<RefCell<Data>>,
@@ -35,22 +34,6 @@ impl App {
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
-        self.data.borrow_mut().add(Entry::new(
-            "Test title",
-            "Description thing",
-            "answer is this",
-        ))?;
-        self.data.borrow_mut().add(Entry::new(
-            "Apples and oranges",
-            "This is a description that i have",
-            "apple --add thing",
-        ))?;
-        self.data.borrow_mut().add(Entry::new(
-            "Git can do something here",
-            "",
-            "git diff main..",
-        ))?;
-
         self.draw(terminal)?;
 
         loop {
@@ -64,18 +47,31 @@ impl App {
                 }
 
                 match k.code {
-                    KeyCode::Down => self.list_index += 1,
-                    KeyCode::Up => self.list_index -= 1,
-                    _ => _ = self.query.input(k),
+                    KeyCode::Down => self.next_item(),
+                    KeyCode::Up => self.prev_item(),
+                    _ => self.register_input(k),
                 }
 
-                let borrow = self.data.borrow();
-                self.matches = rank::rank(self.query_text(), borrow.entries());
                 self.draw(terminal)?;
             }
         }
 
         Ok(())
+    }
+
+    fn next_item(&mut self) {
+        self.list_index = Saturating((self.list_index.0 + 1).min(self.matches.len() - 1))
+    }
+
+    fn prev_item(&mut self) {
+        self.list_index -= 1
+    }
+
+    fn register_input(&mut self, ev: KeyEvent) {
+        self.query.input(ev);
+        let borrow = self.data.borrow();
+        self.matches = rank::rank(self.query_text(), borrow.entries());
+        self.list_index = Saturating(0);
     }
 
     fn draw(&self, terminal: &mut DefaultTerminal) -> Result<()> {
@@ -98,13 +94,26 @@ impl Widget for &App {
         let hor = horizontal![==1/2; 2].split(area);
         let vert = vertical![==3, *=1].split(hor[0]);
 
-        let matches = self
-            .matches
-            .iter()
-            .map(|(i, rank)| (Rc::clone(&self.data.borrow().entries()[*i]), rank))
-            .collect_vec();
-        let p = Paragraph::new(format!("{matches:#?}"));
+        let data = Rc::clone(&self.data);
+        let matches = self.matches.clone();
+
+        let builder = ListBuilder::new(move |cx| {
+            let item = Rc::clone(&data.borrow().entries()[matches[cx.index].0]);
+            let title = Line::from(item.title().to_string());
+            let title = if cx.is_selected {
+                title.on_gray()
+            } else {
+                title
+            };
+
+            (title, 1)
+        });
+        let list = ListView::new(builder, self.matches.len().min(50));
+
+        let mut list_state = ListState::default();
+        list_state.select(Some(self.list_index.0));
+
         self.query.render(vert[0], buf);
-        p.render(vert[1], buf);
+        list.render(vert[1], buf, &mut list_state);
     }
 }

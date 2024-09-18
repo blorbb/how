@@ -17,7 +17,6 @@ fn main() -> Result<()> {
         .read(true)
         .write(true)
         .create(true)
-        .truncate(true) // remove when no longer testing!
         .open(dir.join("how-db.toml"))
         .context("unable to open how-db.toml")?;
 

@@ -1,7 +1,8 @@
 use std::{
     fs::File,
     io::{Read, Seek, Write},
-    iter, rc::Rc,
+    iter,
+    rc::Rc,
 };
 
 use color_eyre::eyre::{Context, Result};
