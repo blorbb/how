@@ -6,7 +6,9 @@ use std::{
 };
 
 use color_eyre::eyre::{Context, Result};
+use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
+use tui_textarea::TextArea;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entry {
@@ -52,6 +54,16 @@ impl Entry {
 
     pub fn answer(&self) -> &str {
         &self.answer
+    }
+}
+
+impl Widget for &Entry {
+    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
+    where
+        Self: Sized,
+    {
+        let textarea = TextArea::from(vec![self.title(), self.description(), self.answer()]);
+        textarea.render(area, buf);
     }
 }
 

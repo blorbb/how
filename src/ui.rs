@@ -4,11 +4,10 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{
     style::Stylize,
-    text::Line,
     widgets::{Block, Borders, StatefulWidget, Widget},
     DefaultTerminal,
 };
-use ratatui_macros::{horizontal, vertical};
+use ratatui_macros::{horizontal, line, vertical};
 use tui_textarea::TextArea;
 use tui_widget_list::{ListBuilder, ListState, ListView};
 
@@ -26,9 +25,9 @@ impl App {
         let mut query = TextArea::default();
         query.set_block(Block::default().borders(Borders::ALL).title("Search"));
         Self {
+            matches: rank::rank("", data.entries()),
             data: Rc::new(RefCell::new(data)),
             query,
-            matches: Vec::new(),
             list_index: Saturating(0),
         }
     }
@@ -99,7 +98,10 @@ impl Widget for &App {
 
         let builder = ListBuilder::new(move |cx| {
             let item = Rc::clone(&data.borrow().entries()[matches[cx.index].0]);
-            let title = Line::from(item.title().to_string());
+            let title = line![
+                item.title().to_string(),
+                format!(" ({:.4})", matches[cx.index].1)
+            ];
             let title = if cx.is_selected {
                 title.on_gray()
             } else {
@@ -115,5 +117,9 @@ impl Widget for &App {
 
         self.query.render(vert[0], buf);
         list.render(vert[1], buf, &mut list_state);
+
+        let binding = self.data.borrow();
+        let selected = &binding.entries()[self.matches[self.list_index.0].0];
+        selected.render(hor[1], buf);
     }
 }
