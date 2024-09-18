@@ -5,7 +5,7 @@ use nucleo::{Config, Matcher, Utf32Str};
 
 use crate::db::Entry;
 
-pub fn rank<'a>(query: &'a str, entries: &'a [Entry]) -> Vec<(&'a Entry, u16)> {
+pub fn rank<'a>(query: &str, entries: &'a [Entry]) -> Vec<(&'a Entry, u16)> {
     let mut query_buf = Vec::new();
     let query_chars = Utf32Str::new(&query, &mut query_buf);
 

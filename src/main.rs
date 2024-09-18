@@ -1,5 +1,6 @@
 mod db;
 mod rank;
+mod ui;
 
 use std::fs;
 
@@ -7,9 +8,7 @@ use color_eyre::{
     eyre::{Context, ContextCompat},
     Result,
 };
-use db::{Data, Entry};
-use rank::rank;
-
+use db::Data;
 fn main() -> Result<()> {
     let dir = dirs::data_dir().context("unable to find data directory")?;
 
@@ -21,28 +20,12 @@ fn main() -> Result<()> {
         .open(dir.join("how-db.toml"))
         .context("unable to open how-db.toml")?;
 
-    let mut data = Data::load_from(file)?;
+    let mut terminal = ratatui::init();
+    terminal.clear()?;
 
-    data.add(Entry::new(
-        "Test title",
-        "Description thing",
-        "answer is this",
-    ))?;
-    data.add(Entry::new(
-        "Apples and oranges",
-        "This is a description that i have",
-        "apple --add thing",
-    ))?;
-    data.add(Entry::new(
-        "Git can do something here",
-        "",
-        "git diff main..",
-    ))?;
+    let data = Data::load_from(file)?;
+    ui::run(terminal, data)?;
 
-    let query = "a";
-    let matches = rank(query, data.entries());
-
-    println!("{matches:#?}");
-
+    ratatui::restore();
     Ok(())
 }
