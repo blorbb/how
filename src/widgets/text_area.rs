@@ -6,10 +6,17 @@ use ratatui::{
 };
 use tui_textarea::{CursorMove, Input, Key, TextArea as TuiTextArea};
 
+const FOCUSED_COLOR: Color = Color::LightYellow;
+const BLURRED_COLOR: Color = Color::White;
+const ERROR_COLOR: Color = Color::Red;
+
 /// A wrapper around `tui_textarea`'s `TextArea` struct.
 pub struct TextArea {
     inner: TuiTextArea<'static>,
     single_line: bool,
+    title: &'static str,
+    focused: bool,
+    validator: Option<(&'static str, Box<dyn Fn(&'_ str) -> bool>)>,
 }
 
 impl TextArea {
@@ -21,6 +28,9 @@ impl TextArea {
         let mut this = Self {
             inner: ta,
             single_line: false,
+            title,
+            focused: false,
+            validator: None,
         };
         this.blur();
         this
@@ -37,20 +47,66 @@ impl TextArea {
         self
     }
 
-    pub fn update_block(&mut self, f: impl FnOnce(Block<'static>) -> Block<'static>) {
+    pub fn set_validator(
+        mut self,
+        error_msg: &'static str,
+        validator: impl Fn(&str) -> bool + 'static,
+    ) -> Self {
+        self.validator = Some((error_msg, Box::new(validator)));
+        self.update_validation();
+        self
+    }
+
+    fn update_validation(&mut self) {
+        if let Some((msg, validator)) = &self.validator {
+            if !validator(&self.text()) {
+                self.set_title(msg);
+                self.color_border(ERROR_COLOR);
+            } else {
+                self.set_title(self.title);
+                self.color_border(self.border_color());
+            }
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self
+            .validator
+            .as_ref()
+            .is_some_and(|(_, val)| !val(&self.text()))
+    }
+
+    fn update_block(&mut self, f: impl FnOnce(Block<'static>) -> Block<'static>) {
         let old_block = self.inner.block().unwrap().clone();
         let new_block = f(old_block);
         self.inner.set_block(new_block);
     }
 
+    pub fn color_border(&mut self, color: Color) {
+        self.update_block(|b| b.border_style(color));
+    }
+
+    pub fn set_title(&mut self, title: &'static str) {
+        // .title appends a new title instead of replacing :(
+        self.inner.set_block(
+            Block::bordered()
+                .border_style(self.border_color())
+                .title(title),
+        )
+    }
+
     pub fn focus(&mut self) {
-        self.update_block(|b| b.border_style(Color::LightYellow));
+        self.focused = true;
+        let color = self.border_color();
+        self.update_block(|b| b.border_style(color));
         self.inner
             .set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
     }
 
     pub fn blur(&mut self) {
-        self.update_block(|b| b.border_style(Color::White));
+        self.focused = false;
+        let color = self.border_color();
+        self.update_block(|b| b.border_style(color));
         self.inner.set_cursor_style(Style::default());
     }
 
@@ -68,6 +124,7 @@ impl TextArea {
             } if self.single_line => {}
             _ => drop(self.inner.input(input)),
         }
+        self.update_validation();
     }
 
     // regular delegated methods //
@@ -78,6 +135,16 @@ impl TextArea {
 
     pub fn text(&self) -> String {
         self.lines().join("\n")
+    }
+
+    fn border_color(&self) -> Color {
+        if !self.is_valid() {
+            ERROR_COLOR
+        } else if self.focused {
+            FOCUSED_COLOR
+        } else {
+            BLURRED_COLOR
+        }
     }
 }
 

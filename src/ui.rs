@@ -200,7 +200,9 @@ impl EntryEditor {
         description: impl Into<String>,
     ) -> Self {
         Self {
-            title: TextArea::new_focused(title, "Title").set_single_line(),
+            title: TextArea::new_focused(title, "Title")
+                .set_single_line()
+                .set_validator("Title cannot be empty", |s| !s.is_empty()),
             code: TextArea::new_blurred(code, "Code"),
             description: TextArea::new_blurred(description, "Description"),
             focus: Wrapping::default(),
@@ -225,7 +227,7 @@ impl EntryEditor {
                 key: Key::Char('s'),
                 ctrl: true,
                 ..
-            } => {
+            } if self.is_valid() => {
                 return Some(Action::AddEntry(Entry::new(
                     self.title.text(),
                     self.code.text(),
@@ -257,6 +259,10 @@ impl EntryEditor {
             2 => &mut self.description,
             _ => unreachable!(),
         }
+    }
+
+    fn is_valid(&self) -> bool {
+        self.title.is_valid() && self.code.is_valid() && self.description.is_valid()
     }
 }
 
