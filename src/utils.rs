@@ -3,6 +3,8 @@ use ratatui::{
 };
 use tui_textarea::{CursorMove, Input, TextArea as TuiTextArea};
 
+use crate::db::Entry;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Wrapping<const SIZE: u32>(u32);
 
@@ -43,6 +45,7 @@ impl<const SIZE: u32> Default for Wrapping<SIZE> {
 #[must_use]
 pub enum Action {
     Exit,
+    AddEntry(Entry),
 }
 
 /// A wrapper around `tui_textarea`'s `TextArea` struct.
@@ -89,6 +92,10 @@ impl TextArea {
 
     pub fn lines(&self) -> &[String] {
         self.0.lines()
+    }
+
+    pub fn text(&self) -> String {
+        self.lines().join("\n")
     }
 }
 

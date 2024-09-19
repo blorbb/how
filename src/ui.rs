@@ -14,7 +14,7 @@ use tui_textarea::{Input, Key};
 use tui_widget_list::{ListBuilder, ListState, ListView};
 
 use crate::{
-    db::Data,
+    db::{Data, Entry},
     rank,
     utils::{Action, TextArea, Wrapping},
 };
@@ -51,9 +51,10 @@ impl App {
                 if let Some(entry_editor) = &mut self.entry_editor {
                     let action = entry_editor.read(k);
                     match action {
-                        Some(Action::Exit) => {
-                            self.entry_editor = None;
-                            self.query.focus();
+                        Some(Action::Exit) => self.close_entry_editor(),
+                        Some(Action::AddEntry(entry)) => {
+                            self.data.borrow_mut().add(entry)?;
+                            self.close_entry_editor();
                         }
                         None => {}
                     }
@@ -95,6 +96,10 @@ impl App {
 
     fn register_input(&mut self, ev: Input) {
         self.query.input(ev);
+        self.refresh_list();
+    }
+
+    fn refresh_list(&mut self) {
         let borrow = self.data.borrow();
         self.matches = rank::rank(self.query_text(), borrow.entries());
         self.list_index = Saturating(0);
@@ -109,6 +114,12 @@ impl App {
 
     fn query_text(&self) -> &str {
         &self.query.lines()[0].trim()
+    }
+
+    fn close_entry_editor(&mut self) {
+        self.entry_editor = None;
+        self.query.focus();
+        self.refresh_list();
     }
 
     fn add_new(&mut self) {
@@ -201,6 +212,17 @@ impl EntryEditor {
                 ctrl: true,
                 ..
             } => return Some(Action::Exit),
+            Input {
+                key: Key::Char('s'),
+                ctrl: true,
+                ..
+            } => {
+                return Some(Action::AddEntry(Entry::new(
+                    self.title.text(),
+                    self.code.text(),
+                    self.description.text(),
+                )))
+            }
             _ => _ = self.current_area().input(input),
         }
 
