@@ -13,16 +13,16 @@ use tui_textarea::TextArea;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Entry {
     title: String,
-    description: String,
     answer: String,
+    description: String,
     used: u32,
 }
 
 impl Entry {
     pub fn new(
         title: impl Into<String>,
-        description: impl Into<String>,
         answer: impl Into<String>,
+        description: impl Into<String>,
     ) -> Self {
         Self {
             title: title.into(),

@@ -1,6 +1,7 @@
 mod db;
 mod rank;
 mod ui;
+mod utils;
 
 use std::fs;
 
