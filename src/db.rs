@@ -1,13 +1,17 @@
 use std::{
+    cmp,
     fs::File,
     io::{Read, Seek, Write},
     iter,
 };
 
 use color_eyre::eyre::{Context, Result};
-use ratatui::widgets::Widget;
+use ratatui::{
+    style::Stylize,
+    widgets::{Block, Paragraph, Widget},
+};
+use ratatui_macros::vertical;
 use serde::{Deserialize, Serialize};
-use tui_textarea::TextArea;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Entry {
@@ -61,8 +65,17 @@ impl Widget for &Entry {
     where
         Self: Sized,
     {
-        let textarea = TextArea::from(vec![self.title(), self.description(), self.answer()]);
-        textarea.render(area, buf);
+        let block = Block::bordered();
+        // +2 for borders
+        let code_height = cmp::max(1, self.answer().lines().count() as u16) + 2;
+        let layout = vertical![==1, ==1, ==code_height, ==1, *=1].split(block.inner(area));
+
+        let title = self.title().bold();
+        let code_block = Paragraph::new(self.answer()).block(Block::bordered().title("Command"));
+        block.render(area, buf);
+        title.render(layout[0], buf);
+        code_block.render(layout[2], buf);
+        self.description().render(layout[4], buf);
     }
 }
 

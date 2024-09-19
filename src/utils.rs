@@ -2,7 +2,7 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Widget},
+    widgets::{Block, Widget},
 };
 use tui_textarea::{CursorMove, Input, Key, TextArea as TuiTextArea};
 
@@ -60,7 +60,7 @@ pub struct TextArea {
 impl TextArea {
     pub fn new_blurred(initial: impl Into<String>, title: &'static str) -> Self {
         let mut ta = TuiTextArea::from(initial.into().lines());
-        ta.set_block(Block::default().borders(Borders::ALL).title(title));
+        ta.set_block(Block::bordered().title(title));
         ta.move_cursor(CursorMove::End);
 
         let mut this = Self {

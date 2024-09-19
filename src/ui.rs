@@ -148,7 +148,7 @@ impl Widget for &App {
                 format!(" ({:.4})", matches[cx.index].1)
             ];
             let title = if cx.is_selected {
-                title.on_gray()
+                title.on_dark_gray().bold().yellow()
             } else {
                 title
             };
