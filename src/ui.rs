@@ -32,7 +32,7 @@ impl App {
         Self {
             matches: rank::rank("", data.entries()),
             data: Rc::new(RefCell::new(data)),
-            query: TextArea::new_focused("", "Search"),
+            query: TextArea::new_focused("", "Search").set_single_line(),
             list_index: Saturating(0),
             entry_editor: None,
         }
@@ -187,7 +187,7 @@ impl EntryEditor {
         description: impl Into<String>,
     ) -> Self {
         Self {
-            title: TextArea::new_focused(title, "Title"),
+            title: TextArea::new_focused(title, "Title").set_single_line(),
             code: TextArea::new_blurred(code, "Code"),
             description: TextArea::new_blurred(description, "Description"),
             focus: Wrapping::default(),
@@ -223,7 +223,7 @@ impl EntryEditor {
                     self.description.text(),
                 )))
             }
-            _ => _ = self.current_area().input(input),
+            _ => self.current_area().input(input),
         }
 
         None
