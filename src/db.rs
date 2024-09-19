@@ -2,7 +2,6 @@ use std::{
     fs::File,
     io::{Read, Seek, Write},
     iter,
-    rc::Rc,
 };
 
 use color_eyre::eyre::{Context, Result};
@@ -10,7 +9,7 @@ use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
 use tui_textarea::TextArea;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Entry {
     title: String,
     answer: String,
@@ -70,7 +69,7 @@ impl Widget for &Entry {
 // needed for derive to get the correct key
 #[derive(Debug, Serialize, Deserialize)]
 struct Entries {
-    entries: Vec<Rc<Entry>>,
+    entries: Vec<Entry>,
 }
 
 impl Entries {
@@ -107,7 +106,7 @@ impl Data {
     }
 
     pub fn add(&mut self, entry: Entry) -> Result<()> {
-        self.entries.entries.push(Rc::new(entry));
+        self.entries.entries.push(entry);
         let doc = toml_edit::ser::to_string_pretty(&self.entries)?;
         self.file.set_len(0)?;
         self.file.rewind()?;
@@ -115,7 +114,7 @@ impl Data {
         Ok(())
     }
 
-    pub fn entries(&self) -> &[Rc<Entry>] {
+    pub fn entries(&self) -> &[Entry] {
         &self.entries.entries
     }
 }

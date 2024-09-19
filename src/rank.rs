@@ -1,11 +1,9 @@
-use std::rc::Rc;
-
 use itertools::Itertools as _;
 use rust_fuzzy_search::fuzzy_compare;
 
 use crate::db::Entry;
 
-pub fn rank<'a>(query: &str, entries: &'a [Rc<Entry>]) -> Vec<(usize, f32)> {
+pub fn rank<'a>(query: &str, entries: &'a [Entry]) -> Vec<(usize, f32)> {
     let query = query.to_lowercase();
     let mut matches = entries
         .iter()

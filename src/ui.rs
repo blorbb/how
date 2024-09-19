@@ -142,7 +142,7 @@ impl Widget for &App {
         let matches = self.matches.clone();
 
         let builder = ListBuilder::new(move |cx| {
-            let item = Rc::clone(&data.borrow().entries()[matches[cx.index].0]);
+            let item = data.borrow().entries()[matches[cx.index].0].clone();
             let title = line![
                 item.title().to_string(),
                 format!(" ({:.4})", matches[cx.index].1)
@@ -155,7 +155,7 @@ impl Widget for &App {
 
             (title, 1)
         });
-        let list = ListView::new(builder, self.matches.len().min(50));
+        let list = ListView::new(builder, self.matches.len());
 
         let mut list_state = ListState::default();
         list_state.select(Some(self.list_index.0));
