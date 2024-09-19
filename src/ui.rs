@@ -79,11 +79,7 @@ impl App {
 
                 // main screen
                 match k {
-                    Input {
-                        key: Key::Char('q'),
-                        ctrl: true,
-                        ..
-                    } => break,
+                    Input { key: Key::Esc, .. } => break,
                     Input {
                         key: Key::Char('a'),
                         ctrl: true,
@@ -224,11 +220,7 @@ impl EntryEditor {
                 shift: true,
                 ..
             } => self.focus_prev(),
-            Input {
-                key: Key::Char('q'),
-                ctrl: true,
-                ..
-            } => return Some(Action::Exit),
+            Input { key: Key::Esc, .. } => return Some(Action::Exit),
             Input {
                 key: Key::Char('s'),
                 ctrl: true,
