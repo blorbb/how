@@ -2,6 +2,7 @@ mod db;
 mod rank;
 mod ui;
 mod utils;
+mod widgets;
 
 use std::fs;
 

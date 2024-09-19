@@ -16,7 +16,8 @@ use tui_widget_list::{ListBuilder, ListState, ListView};
 use crate::{
     db::{Data, Entry},
     rank,
-    utils::{Action, TextArea, Wrapping},
+    utils::{Action, Wrapping},
+    widgets::{ConfirmDialog, TextArea},
 };
 
 pub struct App {
@@ -25,6 +26,7 @@ pub struct App {
     matches: Vec<(usize, f32)>,
     list_index: Saturating<usize>,
     entry_editor: Option<EntryEditor>,
+    dialog: Option<ConfirmDialog<Self>>,
 }
 
 impl App {
@@ -35,6 +37,7 @@ impl App {
             query: TextArea::new_focused("", "Search").set_single_line(),
             list_index: Saturating(0),
             entry_editor: None,
+            dialog: None,
         }
     }
 
@@ -42,23 +45,35 @@ impl App {
         self.draw(terminal)?;
 
         loop {
+            self.draw(terminal)?;
             if let Event::Key(k) = event::read()? {
                 let KeyEventKind::Press = k.kind else {
                     continue;
                 };
                 let k = Input::from(k);
 
-                if let Some(entry_editor) = &mut self.entry_editor {
-                    let action = entry_editor.read(k);
-                    match action {
+                if let Some(dialog) = self.dialog.take() {
+                    match dialog.read(k) {
+                        Some(true) => dialog.execute(self)?,
+                        Some(false) => {}
+                        None => self.dialog = Some(dialog),
+                    };
+                    continue;
+                } else if let Some(entry_editor) = &mut self.entry_editor {
+                    match entry_editor.read(k) {
                         Some(Action::Exit) => self.close_entry_editor(),
                         Some(Action::AddEntry(entry)) => {
-                            self.data.borrow_mut().add(entry)?;
-                            self.close_entry_editor();
+                            self.dialog = Some(ConfirmDialog::new(
+                                "Are you sure you want to create a new log?",
+                                |app: &mut App| {
+                                    app.data.borrow_mut().add(entry)?;
+                                    app.close_entry_editor();
+                                    Ok(())
+                                },
+                            ));
                         }
                         None => {}
                     }
-                    self.draw(terminal)?;
                     continue;
                 }
 
@@ -78,8 +93,6 @@ impl App {
                     Input { key: Key::Up, .. } => self.prev_item(),
                     _ => self.register_input(k),
                 }
-
-                self.draw(terminal)?;
             }
         }
 
@@ -129,7 +142,7 @@ impl App {
 }
 
 impl Widget for &App {
-    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
+    fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
@@ -169,6 +182,10 @@ impl Widget for &App {
             let binding = self.data.borrow();
             let selected = &binding.entries()[self.matches[self.list_index.0].0];
             selected.render(pane_area, buf);
+        }
+
+        if let Some(dialog) = &self.dialog {
+            dialog.render(area, buf);
         }
     }
 }
