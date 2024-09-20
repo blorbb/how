@@ -1,7 +1,6 @@
 use std::{cell::RefCell, cmp, num::Saturating, rc::Rc};
 
 use color_eyre::Result;
-use crossterm::event::{self, Event, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -19,6 +18,17 @@ use crate::{
     utils::{Action, Wrapping},
     widgets::{ConfirmDialog, TextArea},
 };
+
+pub enum AppControl {
+    Become(String),
+    Exit,
+    Continue,
+}
+
+impl AppControl {
+    const CONTINUE: Result<Self> = Ok(Self::Continue);
+    const EXIT: Result<Self> = Ok(Self::Exit);
+}
 
 pub struct App {
     data: Rc<RefCell<Data>>,
@@ -41,66 +51,54 @@ impl App {
         }
     }
 
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
-        self.draw(terminal)?;
-
-        loop {
-            self.draw(terminal)?;
-            if let Event::Key(k) = event::read()? {
-                let KeyEventKind::Press = k.kind else {
-                    continue;
-                };
-                let k = Input::from(k);
-
-                if let Some(dialog) = self.dialog.take() {
-                    match dialog.read(k) {
-                        Some(true) => dialog.execute(self)?,
-                        Some(false) => {}
-                        None => self.dialog = Some(dialog),
-                    };
-                    continue;
-                } else if let Some(entry_editor) = &mut self.entry_editor {
-                    match entry_editor.read(k) {
-                        Some(Action::Exit) => self.close_entry_editor(),
-                        Some(Action::AddEntry(entry)) => {
-                            self.set_dialog(
-                                "Are you sure you want to create a new log?",
-                                |app: &mut App| {
-                                    app.data.borrow_mut().add(entry)?;
-                                    app.close_entry_editor();
-                                    Ok(())
-                                },
-                            );
-                        }
-                        None => {}
-                    }
-                    continue;
+    pub fn read(&mut self, input: Input) -> Result<AppControl> {
+        if let Some(dialog) = self.dialog.take() {
+            match dialog.read(input) {
+                Some(true) => dialog.execute(self)?,
+                Some(false) => {}
+                None => self.dialog = Some(dialog),
+            };
+            return AppControl::CONTINUE;
+        } else if let Some(entry_editor) = &mut self.entry_editor {
+            match entry_editor.read(input) {
+                Some(Action::Exit) => self.close_entry_editor(),
+                Some(Action::AddEntry(entry)) => {
+                    self.set_dialog(
+                        "Are you sure you want to create a new log?",
+                        |app: &mut App| {
+                            app.data.borrow_mut().add(entry)?;
+                            app.close_entry_editor();
+                            Ok(())
+                        },
+                    );
                 }
-
-                // main screen
-                match k {
-                    Input { key: Key::Esc, .. } => break,
-                    Input {
-                        key: Key::Char('a'),
-                        ctrl: true,
-                        ..
-                    } => self.add_new(),
-                    Input {
-                        key: Key::Char('d'),
-                        ctrl: true,
-                        ..
-                    } => self.set_dialog(
-                        "Are you sure you want to delete this entry?",
-                        Self::remove_focused,
-                    ),
-                    Input { key: Key::Down, .. } => self.next_item(),
-                    Input { key: Key::Up, .. } => self.prev_item(),
-                    _ => self.register_input(k),
-                }
+                None => {}
             }
+            return AppControl::CONTINUE;
         }
 
-        Ok(())
+        // main screen
+        match input {
+            Input { key: Key::Esc, .. } => return AppControl::EXIT,
+            Input {
+                key: Key::Char('a'),
+                ctrl: true,
+                ..
+            } => self.add_new(),
+            Input {
+                key: Key::Char('d'),
+                ctrl: true,
+                ..
+            } => self.set_dialog(
+                "Are you sure you want to delete this entry?",
+                Self::remove_focused,
+            ),
+            Input { key: Key::Down, .. } => self.next_item(),
+            Input { key: Key::Up, .. } => self.prev_item(),
+            _ => self.register_input(input),
+        }
+
+        AppControl::CONTINUE
     }
 
     fn next_item(&mut self) {
@@ -137,7 +135,7 @@ impl App {
         Ok(())
     }
 
-    fn draw(&self, terminal: &mut DefaultTerminal) -> Result<()> {
+    pub fn draw(&self, terminal: &mut DefaultTerminal) -> Result<()> {
         terminal.draw(|frame| {
             frame.render_widget(self, frame.area());
         })?;

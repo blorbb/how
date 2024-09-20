@@ -10,6 +10,7 @@ use color_eyre::{
     eyre::{Context, ContextCompat},
     Result,
 };
+use crossterm::event::{self, Event, KeyEventKind};
 use db::Data;
 use ui::App;
 fn main() -> Result<()> {
@@ -26,8 +27,26 @@ fn main() -> Result<()> {
     terminal.clear()?;
 
     let data = Data::load_from(file)?;
-    App::new(data).run(&mut terminal)?;
+    let mut app = App::new(data);
+    let output = loop {
+        terminal.draw(|f| f.render_widget(&app, f.area()))?;
+        if let Event::Key(input) = event::read()? {
+            if input.kind == KeyEventKind::Release {
+                continue;
+            }
+            match app.read(input.into())? {
+                ui::AppControl::Become(s) => break Some(s),
+                ui::AppControl::Exit => break None,
+                ui::AppControl::Continue => {}
+            }
+        }
+    };
 
     ratatui::restore();
+
+    if let Some(s) = output {
+        println!("{s}");
+    }
+
     Ok(())
 }
