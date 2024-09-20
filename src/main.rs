@@ -30,6 +30,13 @@ struct Args {
     /// Immediately executes the command instead of printing to stdout.
     #[arg(long)]
     execute: bool,
+    /// Only echoes the zsh integration script.
+    ///
+    /// This should be added to your `.zshrc` like so:
+    ///
+    /// `source <(how --zsh)`
+    #[arg(long, exclusive = true)]
+    zsh: bool,
     /// An initial query to insert. Can be quoted or unquoted,
     /// in which case, each argument will be separated by a space.
     ///
@@ -51,6 +58,13 @@ fn main() -> Result<()> {
 
 fn run() -> Result<()> {
     let args = Args::parse();
+    if args.zsh {
+        println!(
+            "### start: how integration.zsh ###\n{}\n### end: how integration.zsh ###\n",
+            include_str!("../shell/integration.zsh")
+        );
+        return Ok(());
+    }
 
     let dir = dirs::data_dir().context("unable to find data directory")?;
 
