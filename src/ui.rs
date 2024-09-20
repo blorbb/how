@@ -6,7 +6,6 @@ use ratatui::{
     layout::Rect,
     style::Stylize,
     widgets::{StatefulWidget, Widget},
-    DefaultTerminal,
 };
 use ratatui_macros::{horizontal, line, vertical};
 use tui_textarea::{Input, Key};
@@ -96,7 +95,7 @@ impl App {
             ),
             Input {
                 key: Key::Enter, ..
-            } => return Ok(AppControl::Become(self.focused_entry().into_answer())),
+            } => return Ok(AppControl::Become(self.focused_entry().code)),
             Input { key: Key::Down, .. } => self.next_item(),
             Input { key: Key::Up, .. } => self.prev_item(),
             _ => self.register_input(input),
@@ -139,13 +138,6 @@ impl App {
         Ok(())
     }
 
-    pub fn draw(&self, terminal: &mut DefaultTerminal) -> Result<()> {
-        terminal.draw(|frame| {
-            frame.render_widget(self, frame.area());
-        })?;
-        Ok(())
-    }
-
     fn query_text(&self) -> &str {
         &self.query.lines()[0].trim()
     }
@@ -182,10 +174,7 @@ impl Widget for &App {
 
         let builder = ListBuilder::new(move |cx| {
             let item = data.borrow().entries()[matches[cx.index].0].clone();
-            let title = line![
-                item.title().to_string(),
-                format!(" ({:.4})", matches[cx.index].1)
-            ];
+            let title = line![item.title, format!(" ({:.4})", matches[cx.index].1)];
             let title = if cx.is_selected {
                 title.on_dark_gray().bold().yellow()
             } else {
@@ -206,7 +195,7 @@ impl Widget for &App {
             entry_editor.render(pane_area, buf);
         } else {
             let binding = self.data.borrow();
-            let selected = &binding.entries()[self.matches[self.list_index.0].0];
+            let selected = binding.entries()[self.matches[self.list_index.0].0].clone();
             selected.render(pane_area, buf);
         }
 
@@ -309,5 +298,18 @@ impl Widget for &EntryEditor {
         self.title.render(layout[0], buf);
         self.code.render(layout[1], buf);
         self.description.render(layout[2], buf);
+    }
+}
+
+impl From<Entry> for EntryEditor {
+    fn from(
+        Entry {
+            title,
+            code,
+            description,
+            ..
+        }: Entry,
+    ) -> Self {
+        Self::new(title, code, description)
     }
 }

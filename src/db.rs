@@ -15,10 +15,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Entry {
-    title: String,
-    answer: String,
-    description: String,
-    used: u32,
+    pub title: String,
+    pub code: String,
+    pub description: String,
+    pub used: u32,
 }
 
 impl Entry {
@@ -30,7 +30,7 @@ impl Entry {
         Self {
             title: title.into(),
             description: description.into(),
-            answer: answer.into(),
+            code: answer.into(),
             used: 0,
         }
     }
@@ -43,43 +43,27 @@ impl Entry {
             .chain(iter::once('\n'))
             .chain(self.description.chars())
             .chain(iter::once('\n'))
-            .chain(self.answer.chars())
+            .chain(self.code.chars())
             .collect()
-    }
-
-    pub fn title(&self) -> &str {
-        &self.title
-    }
-
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-
-    pub fn answer(&self) -> &str {
-        &self.answer
-    }
-
-    pub fn into_answer(self) -> String {
-        self.answer
     }
 }
 
-impl Widget for &Entry {
+impl Widget for Entry {
     fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
     where
         Self: Sized,
     {
         let block = Block::bordered();
         // +2 for borders
-        let code_height = cmp::max(1, self.answer().lines().count() as u16) + 2;
+        let code_height = cmp::max(1, self.code.lines().count() as u16) + 2;
         let layout = vertical![==1, ==1, ==code_height, ==1, *=1].split(block.inner(area));
 
-        let title = self.title().bold();
-        let code_block = Paragraph::new(self.answer()).block(Block::bordered().title("Command"));
+        let title = self.title.bold();
+        let code_block = Paragraph::new(self.code).block(Block::bordered().title("Command"));
         block.render(area, buf);
         title.render(layout[0], buf);
         code_block.render(layout[2], buf);
-        self.description().render(layout[4], buf);
+        self.description.render(layout[4], buf);
     }
 }
 

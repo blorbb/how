@@ -12,16 +12,16 @@ pub fn rank(query: &str, entries: &[Entry]) -> Vec<(usize, f32)> {
             // varying weightings for each
             // must be zero on empty, otherwise no query matches with the field
             // a lot and makes entries with empty fields rank higher.
-            let title_cmp = fuzzy_compare(&query, &entry.title().to_lowercase());
-            let desc_cmp = if entry.description().is_empty() {
+            let title_cmp = fuzzy_compare(&query, &entry.title.to_lowercase());
+            let desc_cmp = if entry.description.is_empty() {
                 0.0
             } else {
-                fuzzy_compare(&query, &entry.description().to_lowercase())
+                fuzzy_compare(&query, &entry.description.to_lowercase())
             };
-            let ans_cmp = if entry.description().is_empty() {
+            let ans_cmp = if entry.description.is_empty() {
                 0.0
             } else {
-                fuzzy_compare(&query, &entry.answer().to_lowercase())
+                fuzzy_compare(&query, &entry.code.to_lowercase())
             };
             (i, title_cmp * 2.0 + desc_cmp + ans_cmp * 1.5)
         })
