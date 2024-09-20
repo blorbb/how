@@ -1,5 +1,8 @@
+#![feature(let_chains)]
+
 mod db;
 mod rank;
+mod template;
 mod ui;
 mod utils;
 mod widgets;

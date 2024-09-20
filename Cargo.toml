@@ -14,6 +14,7 @@ ratatui = "0.28.1"
 ratatui-macros = "0.5.0"
 rust-fuzzy-search = "0.1.1"
 serde = { version = "1.0.210", features = ["derive"] }
+thiserror = "1.0.63"
 toml = { version = "0.8.19", features = ["parse", "display"] }
 tui-textarea = "0.6.1"
 tui-widget-list = "0.12.2"

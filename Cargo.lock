@@ -358,6 +358,7 @@ dependencies = [
  "ratatui-macros",
  "rust-fuzzy-search",
  "serde",
+ "thiserror",
  "toml",
  "tui-textarea",
  "tui-widget-list",
