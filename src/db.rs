@@ -58,6 +58,10 @@ impl Entry {
     pub fn answer(&self) -> &str {
         &self.answer
     }
+
+    pub fn into_answer(self) -> String {
+        self.answer
+    }
 }
 
 impl Widget for &Entry {

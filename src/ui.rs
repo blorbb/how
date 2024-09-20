@@ -93,6 +93,9 @@ impl App {
                 "Are you sure you want to delete this entry?",
                 Self::remove_focused,
             ),
+            Input {
+                key: Key::Enter, ..
+            } => return Ok(AppControl::Become(self.focused_entry().into_answer())),
             Input { key: Key::Down, .. } => self.next_item(),
             Input { key: Key::Up, .. } => self.prev_item(),
             _ => self.register_input(input),
@@ -155,6 +158,11 @@ impl App {
     fn add_new(&mut self) {
         self.entry_editor = Some(EntryEditor::new(self.query_text(), "", ""));
         self.query.blur();
+    }
+
+    fn focused_entry(&self) -> Entry {
+        let i = self.matches[self.list_index.0].0;
+        self.data.borrow().entries()[i].clone()
     }
 }
 
