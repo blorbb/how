@@ -40,11 +40,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(data: Data) -> Self {
+    pub fn new(data: Data, initial_query: impl Into<String>) -> Self {
+        let initial_query = initial_query.into();
         Self {
-            matches: rank::rank("", data.entries()),
+            matches: rank::rank(&initial_query, data.entries()),
             data: Rc::new(RefCell::new(data)),
-            query: TextArea::new_focused("", "Search").set_single_line(),
+            query: TextArea::new_focused(initial_query, "Search").set_single_line(),
             list_index: Saturating(0),
             entry_editor: None,
             dialog: None,

@@ -1,9 +1,11 @@
 [package]
 name = "how"
 version = "0.1.0"
+description = "Search a saved list of commands"
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.5.17", features = ["derive"] }
 color-eyre = "0.6.3"
 crossterm = "0.28.1"
 dirs = "5.0.1"

@@ -9,6 +9,7 @@ use std::{
     io::{self, stderr, BufWriter},
 };
 
+use clap::Parser;
 use color_eyre::{
     eyre::{Context, ContextCompat},
     Result,
@@ -22,7 +23,29 @@ use db::Data;
 use ratatui::{prelude::CrosstermBackend, Terminal};
 use ui::App;
 
+#[derive(Debug, Parser)]
+#[command(version, about)]
+struct Args {
+    /// Immediately executes the command instead of printing to stdout.
+    #[arg(short, long)]
+    execute: bool,
+    /// An initial query to insert. Can be quoted or unquoted,
+    /// in which case, each argument will be separated by a space.
+    ///
+    /// WARNING: if inserting unquoted, any word that starts with a dash
+    /// may be interpreted as a flag instead. Quoted strings that start
+    /// with a dash may also be interpreted as a flag.
+    ///
+    /// To avoid accidentally setting flags, insert text after a `--`.
+    ///
+    /// For example: `how -e -- initial -h query`. This sets the `-e` flag,
+    /// and has an initial query of "initial -h query".
+    query: Vec<String>,
+}
+
 fn main() -> Result<()> {
+    let args = Args::parse();
+
     let dir = dirs::data_dir().context("unable to find data directory")?;
 
     let file = fs::OpenOptions::new()
@@ -41,7 +64,7 @@ fn main() -> Result<()> {
     terminal.clear()?;
 
     let data = Data::load_from(file)?;
-    let mut app = App::new(data);
+    let mut app = App::new(data, args.query.join(" "));
     let output = loop {
         terminal.draw(|f| f.render_widget(&app, f.area()))?;
         if let Event::Key(input) = event::read()? {
