@@ -1,5 +1,3 @@
-use crate::db::Entry;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Wrapping<const SIZE: u32>(u32);
 
@@ -35,10 +33,4 @@ impl<const SIZE: u32> Default for Wrapping<SIZE> {
     fn default() -> Self {
         Self::new(0)
     }
-}
-
-#[must_use]
-pub enum Action {
-    Exit,
-    AddEntry(Entry),
 }

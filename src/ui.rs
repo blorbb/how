@@ -14,7 +14,7 @@ use tui_widget_list::{ListBuilder, ListState, ListView};
 use crate::{
     db::{Data, Entry},
     rank,
-    utils::{Action, Wrapping},
+    utils::Wrapping,
     widgets::{ConfirmDialog, TextArea},
 };
 
@@ -63,14 +63,12 @@ impl App {
             match entry_editor.read(input) {
                 Some(Action::Exit) => self.close_entry_editor(),
                 Some(Action::AddEntry(entry)) => {
-                    self.set_dialog(
-                        "Are you sure you want to create a new log?",
-                        |app: &mut App| {
-                            app.data.borrow_mut().add(entry)?;
-                            app.close_entry_editor();
-                            Ok(())
-                        },
-                    );
+                    self.data.borrow_mut().add(entry)?;
+                    self.close_entry_editor();
+                }
+                Some(Action::EditEntry(idx, entry)) => {
+                    self.data.borrow_mut().edit(idx, entry)?;
+                    self.close_entry_editor();
                 }
                 None => {}
             }
@@ -85,6 +83,11 @@ impl App {
                 ctrl: true,
                 ..
             } => self.add_new(),
+            Input {
+                key: Key::Char('e'),
+                ctrl: true,
+                ..
+            } => self.edit_focused(),
             Input {
                 key: Key::Char('d'),
                 ctrl: true,
@@ -132,8 +135,7 @@ impl App {
     }
 
     fn remove_focused(&mut self) -> Result<()> {
-        let match_index = self.matches[self.list_index.0].0;
-        self.data.borrow_mut().remove(match_index)?;
+        self.data.borrow_mut().remove(self.focused_entry_index())?;
         self.refresh_list();
         Ok(())
     }
@@ -153,9 +155,24 @@ impl App {
         self.query.blur();
     }
 
+    fn edit_focused(&mut self) {
+        let entry = self.focused_entry();
+
+        self.entry_editor = Some(EntryEditor::new_editing(
+            entry.title,
+            entry.code,
+            entry.description,
+            self.focused_entry_index(),
+        ));
+        self.query.blur();
+    }
+
     fn focused_entry(&self) -> Entry {
-        let i = self.matches[self.list_index.0].0;
-        self.data.borrow().entries()[i].clone()
+        self.data.borrow().entries()[self.focused_entry_index()].clone()
+    }
+
+    fn focused_entry_index(&self) -> usize {
+        self.matches[self.list_index.0].0
     }
 }
 
@@ -205,11 +222,24 @@ impl Widget for &App {
     }
 }
 
+#[must_use]
+pub enum Action {
+    Exit,
+    AddEntry(Entry),
+    EditEntry(usize, Entry),
+}
+
+enum EditorKind {
+    Adding,
+    Editing(usize),
+}
+
 struct EntryEditor {
     title: TextArea,
     code: TextArea,
     description: TextArea,
     focus: Wrapping<3>,
+    kind: EditorKind,
 }
 
 impl EntryEditor {
@@ -225,7 +255,19 @@ impl EntryEditor {
             code: TextArea::new_blurred(code, "Code"),
             description: TextArea::new_blurred(description, "Description"),
             focus: Wrapping::default(),
+            kind: EditorKind::Adding,
         }
+    }
+
+    pub fn new_editing(
+        title: impl Into<String>,
+        code: impl Into<String>,
+        description: impl Into<String>,
+        entry_index: usize,
+    ) -> Self {
+        let mut this = Self::new(title, code, description);
+        this.kind = EditorKind::Editing(entry_index);
+        this
     }
 
     pub fn read(&mut self, input: Input) -> Option<Action> {
@@ -247,11 +289,11 @@ impl EntryEditor {
                 ctrl: true,
                 ..
             } if self.is_valid() => {
-                return Some(Action::AddEntry(Entry::new(
-                    self.title.text(),
-                    self.code.text(),
-                    self.description.text(),
-                )))
+                let entry = Entry::from(&*self);
+                match self.kind {
+                    EditorKind::Adding => return Some(Action::AddEntry(entry)),
+                    EditorKind::Editing(idx) => return Some(Action::EditEntry(idx, entry)),
+                }
             }
             _ => self.current_area().input(input),
         }
@@ -301,15 +343,12 @@ impl Widget for &EntryEditor {
     }
 }
 
-impl From<Entry> for EntryEditor {
-    fn from(
-        Entry {
-            title,
-            code,
-            description,
-            ..
-        }: Entry,
-    ) -> Self {
-        Self::new(title, code, description)
+impl From<&EntryEditor> for Entry {
+    fn from(value: &EntryEditor) -> Self {
+        Self::new(
+            value.title.text(),
+            value.code.text(),
+            value.description.text(),
+        )
     }
 }

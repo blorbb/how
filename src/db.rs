@@ -124,6 +124,11 @@ impl Data {
         self.write_to_file()
     }
 
+    pub fn edit(&mut self, index: usize, new: Entry) -> Result<()> {
+        self.entries.entries[index] = new;
+        self.write_to_file()
+    }
+
     pub fn entries(&self) -> &[Entry] {
         &self.entries.entries
     }
