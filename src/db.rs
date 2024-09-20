@@ -110,7 +110,7 @@ impl Data {
             }
         } else {
             Data {
-                entries: toml_edit::de::from_str(&str)?,
+                entries: toml::from_str(&str)?,
                 file,
             }
         };
@@ -120,7 +120,7 @@ impl Data {
 
     pub fn add(&mut self, entry: Entry) -> Result<()> {
         self.entries.entries.push(entry);
-        let doc = toml_edit::ser::to_string_pretty(&self.entries)?;
+        let doc = toml::to_string_pretty(&self.entries)?;
         self.file.set_len(0)?;
         self.file.rewind()?;
         self.file.write_all(doc.as_bytes())?;
