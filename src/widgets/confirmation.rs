@@ -65,9 +65,9 @@ impl<T> Widget for &ConfirmDialog<T> {
         const PADDING_INLINE: u16 = 3;
         let popup_area = {
             let text_width = self.text.lines().map(str::len).max().unwrap_or(0) as u16;
-            let width = text_width.clamp(BUTTONS_WIDTH + PADDING_INLINE * 2, text_max_width);
+            let width = text_width.clamp(BUTTONS_WIDTH, text_max_width) + PADDING_INLINE * 2;
 
-            let height = text_height + PADDING_BLOCK * 2 + BUTTON_HEIGHT;
+            let height = text_height + PADDING_BLOCK * 2 + 1 + BUTTON_HEIGHT;
 
             let [vert] = vertical![==height].flex(Flex::Center).areas(area);
             let [hor] = horizontal![==width].flex(Flex::Center).areas(vert);

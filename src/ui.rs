@@ -63,14 +63,14 @@ impl App {
                     match entry_editor.read(k) {
                         Some(Action::Exit) => self.close_entry_editor(),
                         Some(Action::AddEntry(entry)) => {
-                            self.dialog = Some(ConfirmDialog::new(
+                            self.set_dialog(
                                 "Are you sure you want to create a new log?",
                                 |app: &mut App| {
                                     app.data.borrow_mut().add(entry)?;
                                     app.close_entry_editor();
                                     Ok(())
                                 },
-                            ));
+                            );
                         }
                         None => {}
                     }
@@ -85,6 +85,14 @@ impl App {
                         ctrl: true,
                         ..
                     } => self.add_new(),
+                    Input {
+                        key: Key::Char('d'),
+                        ctrl: true,
+                        ..
+                    } => self.set_dialog(
+                        "Are you sure you want to delete this entry?",
+                        Self::remove_focused,
+                    ),
                     Input { key: Key::Down, .. } => self.next_item(),
                     Input { key: Key::Up, .. } => self.prev_item(),
                     _ => self.register_input(k),
@@ -112,6 +120,21 @@ impl App {
         let borrow = self.data.borrow();
         self.matches = rank::rank(self.query_text(), borrow.entries());
         self.list_index = Saturating(0);
+    }
+
+    fn set_dialog(
+        &mut self,
+        text: impl Into<String>,
+        confirm_callback: impl FnOnce(&mut App) -> Result<()> + 'static,
+    ) {
+        self.dialog = Some(ConfirmDialog::new(text, confirm_callback));
+    }
+
+    fn remove_focused(&mut self) -> Result<()> {
+        let match_index = self.matches[self.list_index.0].0;
+        self.data.borrow_mut().remove(match_index)?;
+        self.refresh_list();
+        Ok(())
     }
 
     fn draw(&self, terminal: &mut DefaultTerminal) -> Result<()> {

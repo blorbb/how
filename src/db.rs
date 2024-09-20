@@ -118,13 +118,22 @@ impl Data {
         Ok(entries)
     }
 
-    pub fn add(&mut self, entry: Entry) -> Result<()> {
-        self.entries.entries.push(entry);
+    fn write_to_file(&mut self) -> Result<()> {
         let doc = toml::to_string_pretty(&self.entries)?;
         self.file.set_len(0)?;
         self.file.rewind()?;
         self.file.write_all(doc.as_bytes())?;
         Ok(())
+    }
+
+    pub fn add(&mut self, entry: Entry) -> Result<()> {
+        self.entries.entries.push(entry);
+        self.write_to_file()
+    }
+
+    pub fn remove(&mut self, index: usize) -> Result<()> {
+        self.entries.entries.remove(index);
+        self.write_to_file()
     }
 
     pub fn entries(&self) -> &[Entry] {
