@@ -6,7 +6,8 @@ mod widgets;
 
 use std::{
     fs,
-    io::{self, stderr, BufWriter},
+    io::{self, stderr, BufWriter, Write},
+    process::{self, Command},
 };
 
 use clap::Parser;
@@ -27,7 +28,7 @@ use ui::App;
 #[command(version, about)]
 struct Args {
     /// Immediately executes the command instead of printing to stdout.
-    #[arg(short, long)]
+    #[arg(long)]
     execute: bool,
     /// An initial query to insert. Can be quoted or unquoted,
     /// in which case, each argument will be separated by a space.
@@ -38,8 +39,9 @@ struct Args {
     ///
     /// To avoid accidentally setting flags, insert text after a `--`.
     ///
-    /// For example: `how -e -- initial -h query`. This sets the `-e` flag,
-    /// and has an initial query of "initial -h query".
+    /// For example: `how --execute -- initial -h query`.
+    /// This sets the `--execute` flag, and has an initial query of
+    /// "initial -h query".
     query: Vec<String>,
 }
 
@@ -82,7 +84,22 @@ fn main() -> Result<()> {
     restore()?;
 
     if let Some(s) = output {
-        println!("{s}");
+        if args.execute {
+            let output = if cfg!(target_os = "windows") {
+                Command::new("cmd").arg("/C").arg(&s).output()?
+            } else {
+                Command::new("sh").arg("-c").arg(&s).output()?
+            };
+
+            // show output of that command
+            _ = io::stdout().write_all(&output.stdout);
+            _ = io::stderr().write_all(&output.stderr);
+            if let Some(code) = output.status.code() {
+                process::exit(code);
+            }
+        } else {
+            println!("{s}");
+        }
     }
 
     Ok(())
