@@ -46,6 +46,10 @@ struct Args {
 }
 
 fn main() -> Result<()> {
+    run().inspect_err(|_| _ = restore())
+}
+
+fn run() -> Result<()> {
     let args = Args::parse();
 
     let dir = dirs::data_dir().context("unable to find data directory")?;
