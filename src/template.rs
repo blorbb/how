@@ -47,17 +47,17 @@ mod ir {
         }
 
         pub fn read_digit(self, c: char) -> Result<Self, Error> {
-            if ('0'..='9').contains(&c) {
-                let digit = c as u8 - '0' as u8;
-                Ok(Self(
-                    self.0
-                        .checked_mul(10)
-                        .and_then(|i| i.checked_add(digit))
-                        .ok_or(Error::OverflowingNumber)?,
-                ))
-            } else {
-                Err(Error::InvalidNumber)
-            }
+            let digit = c
+                .to_digit(10)
+                .ok_or(Error::InvalidNumber)?
+                .try_into()
+                .expect("digit is in base 10, value should not exceed 9");
+            Ok(Self(
+                self.0
+                    .checked_mul(10)
+                    .and_then(|i| i.checked_add(digit))
+                    .ok_or(Error::OverflowingNumber)?,
+            ))
         }
 
         pub fn get(self) -> u8 {
@@ -131,9 +131,7 @@ fn parse(s: &str) -> Result<TemplatedCommand, Error> {
             ('[', State::Literal(start)) => {
                 let literal_range = *start..template.display.len();
                 if !literal_range.is_empty() {
-                    template
-                        .sections
-                        .push(TemplateSection::Literal(literal_range))
+                    template.push_literal(literal_range);
                 };
                 input_state = State::Default(template.display.len());
             }
@@ -156,17 +154,13 @@ fn parse(s: &str) -> Result<TemplatedCommand, Error> {
             (']', State::Default(start)) => {
                 let range = *start..template.display.len();
                 unassigned_inputs.push(template.sections.len());
-                template
-                    .sections
-                    .push(TemplateSection::Input(range, String::new()));
+                template.push_input(range, String::new());
                 input_state = State::Literal(template.display.len());
             }
             // description given, unassigned ordering
             (']', State::Description(range, desc)) => {
                 unassigned_inputs.push(template.sections.len());
-                template
-                    .sections
-                    .push(TemplateSection::Input(range.clone(), mem::take(desc)));
+                template.push_input(range.clone(), mem::take(desc));
                 input_state = State::Literal(template.display.len());
             }
             // index given
@@ -181,9 +175,7 @@ fn parse(s: &str) -> Result<TemplatedCommand, Error> {
                     .entry(*idx)
                     .or_default()
                     .push(template.sections.len());
-                template
-                    .sections
-                    .push(TemplateSection::Input(range.clone(), mem::take(desc)));
+                template.push_input(range.clone(), mem::take(desc));
                 input_state = State::Literal(template.display.len());
             }
 
@@ -248,6 +240,17 @@ pub struct TemplatedCommand {
     /// Numbers are the indices of the input `sections`. Each index
     /// must correspond to a [`TemplateSection::Input`] variant.
     input_order: Vec<Vec<usize>>,
+}
+
+impl TemplatedCommand {
+    pub fn push_input(&mut self, range: Range<usize>, description: String) {
+        self.sections
+            .push(TemplateSection::Input(range, description));
+    }
+
+    pub fn push_literal(&mut self, range: Range<usize>) {
+        self.sections.push(TemplateSection::Literal(range));
+    }
 }
 
 #[cfg(test)]
